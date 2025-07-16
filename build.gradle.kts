@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    id("org.jetbrains.compose")
+    alias(libs.plugins.compose)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -22,7 +24,9 @@ kotlin {
 // Configure project's dependencies
 repositories {
     mavenCentral()
-
+    google()
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+    maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
     // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
     intellijPlatform {
         defaultRepositories()
@@ -33,6 +37,9 @@ repositories {
 dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
+    implementation(compose.desktop.currentOs)
+    implementation(compose.materialIconsExtended)
+    implementation(libs.freemarker)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
