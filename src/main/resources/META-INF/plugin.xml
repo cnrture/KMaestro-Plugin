@@ -5,11 +5,14 @@
     <vendor>cnrture</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-
-    <resource-bundle>messages.MyBundle</resource-bundle>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.cnrture.kmaestro.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.cnrture.kmaestro.startup.MyProjectActivity" />
+        <toolWindow
+                factoryClass="com.github.cnrture.kmaestro.toolWindow.KMaestroWindowFactory"
+                id="KMaestro"
+                anchor="right"
+                icon="/icons/pluginIcon.svg"/>
     </extensions>
 </idea-plugin>
