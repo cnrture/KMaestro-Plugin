@@ -1,27 +1,26 @@
 package com.github.cnrture.kmaestro.toolWindow
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.cnrture.kmaestro.components.*
 import com.github.cnrture.kmaestro.services.MaestroFile
 import com.github.cnrture.kmaestro.services.MaestroService
 import com.github.cnrture.kmaestro.theme.KMTheme
@@ -75,340 +74,176 @@ class KMaestroWindowFactory : ToolWindowFactory {
         var selectedFile by remember { mutableStateOf<MaestroFile?>(null) }
         var isScanning by remember { mutableStateOf(false) }
         var isRunning by remember { mutableStateOf(false) }
-        var logOutput by remember { mutableStateOf("Welcome to KMaestro! \nSelect a directory to scan for Maestro files.") }
-        var statusMessage by remember { mutableStateOf("Ready") }
+        var logOutput by remember { mutableStateOf("Welcome to KMaestro!\nSelect a directory to scan for Maestro files.") }
+        var selectedTab by remember { mutableStateOf("Create") }
 
         LaunchedEffect(Unit) {
             scanFiles(maestroService, directoryPath) { files, message ->
                 maestroFiles = files
-                statusMessage = message
                 if (files.isNotEmpty()) {
                     logOutput = " Found ${files.size} Maestro file(s) in directory"
                 }
             }
         }
 
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = KMTheme.colors.black
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KMTheme.colors.gray)
         ) {
+            SidebarSection(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                modifier = Modifier.width(200.dp)
+            )
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .background(KMTheme.colors.black)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header
                 HeaderSection()
 
-                // Directory Section
-                DirectorySection(
-                    directoryPath = directoryPath,
-                    onDirectoryChange = { directoryPath = it },
-                    onBrowse = {
-                        browseDirectory(project) { path ->
-                            directoryPath = path
-                            scope.launch {
-                                isScanning = true
-                                scanFiles(maestroService, path) { files, message ->
-                                    maestroFiles = files
-                                    statusMessage = message
-                                    isScanning = false
-                                    logOutput = if (files.isNotEmpty()) {
-                                        " Found ${files.size} Maestro file(s) in directory"
-                                    } else {
-                                        " No Maestro YAML files found in the specified directory"
+                when (selectedTab) {
+                    "Create" -> {
+                        KMText(
+                            text = "Create Maestro Test",
+                            style = TextStyle(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = KMTheme.colors.green
+                            ),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+
+                    "Run" -> {
+                        RunnerTabContent(
+                            selectedFile = selectedFile,
+                            isRunning = isRunning,
+                            logOutput = logOutput,
+                            directoryPath = directoryPath,
+                            onDirectoryChange = { directoryPath = it },
+                            maestroFiles = maestroFiles,
+                            onFileSelect = { selectedFile = it },
+                            onFileDoubleClick = { file ->
+                                ApplicationManager.getApplication().invokeLater {
+                                    FileEditorManager.getInstance(project).openFile(file.virtualFile, true)
+                                }
+                            },
+                            isScanning = isScanning,
+                            onBrowse = {
+                                browseDirectory(project) { path ->
+                                    directoryPath = path
+                                    scope.launch {
+                                        isScanning = true
+                                        scanFiles(maestroService, path) { files, message ->
+                                            maestroFiles = files
+                                            isScanning = false
+                                            logOutput = "Waiting for tests to run..."
+                                        }
                                     }
                                 }
-                            }
-                        }
-                    },
-                    onRefresh = {
-                        scope.launch {
-                            isScanning = true
-                            scanFiles(maestroService, directoryPath) { files, message ->
-                                maestroFiles = files
-                                statusMessage = message
-                                isScanning = false
-                                logOutput = if (files.isNotEmpty()) {
-                                    " Refreshed - Found ${files.size} Maestro file(s)"
-                                } else {
-                                    " No Maestro YAML files found in the specified directory"
+                            },
+                            onRefresh = {
+                                scope.launch {
+                                    isScanning = true
+                                    scanFiles(maestroService, directoryPath) { files, message ->
+                                        maestroFiles = files
+                                        isScanning = false
+                                        logOutput = if (files.isNotEmpty()) {
+                                            "Refreshed - Found ${files.size} Maestro file(s)"
+                                        } else {
+                                            "No Maestro YAML files found in the specified directory"
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                    },
-                    isScanning = isScanning
-                )
+                            },
+                            onRunTest = {
+                                selectedFile?.let { file ->
+                                    scope.launch {
+                                        isRunning = true
+                                        logOutput = " Running test: ${file.name}\n\n"
 
-                // Files List Section
-                FilesSection(
-                    files = maestroFiles,
-                    selectedFile = selectedFile,
-                    onFileSelect = { selectedFile = it },
-                    onFileDoubleClick = { file ->
-                        ApplicationManager.getApplication().invokeLater {
-                            FileEditorManager.getInstance(project).openFile(file.virtualFile, true)
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Run Button
-                RunButton(
-                    enabled = selectedFile != null && !isRunning,
-                    isRunning = isRunning,
-                    onClick = {
-                        selectedFile?.let { file ->
-                            scope.launch {
-                                isRunning = true
-                                logOutput = " Running test: ${file.name}\n\n"
-
-                                ApplicationManager.getApplication().executeOnPooledThread {
-                                    maestroService.runMaestroTest(file.path).thenAccept { result ->
-                                        SwingUtilities.invokeLater {
-                                            isRunning = false
-                                            val statusIcon = if (result.success) " " else " "
-                                            val statusText = if (result.success) "SUCCESS" else "FAILED"
-                                            logOutput =
-                                                "$statusIcon Test completed: $statusText (Exit code: ${result.exitCode})\n\n${result.output}"
+                                        ApplicationManager.getApplication().executeOnPooledThread {
+                                            maestroService.runMaestroTest(file.path).thenAccept { result ->
+                                                SwingUtilities.invokeLater {
+                                                    isRunning = false
+                                                    val statusIcon = if (result.success) " " else " "
+                                                    val statusText = if (result.success) "SUCCESS" else "FAILED"
+                                                    logOutput =
+                                                        "$statusIcon Test completed: $statusText (Exit code: ${result.exitCode})\n\n${result.output}"
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
+                        )
                     }
-                )
-
-                // Status Bar
-                StatusBar(
-                    status = statusMessage,
-                    filesCount = maestroFiles.size
-                )
-
-                // Log Output Section
-                LogSection(
-                    logOutput = logOutput,
-                    modifier = Modifier.weight(1f)
-                )
+                }
             }
         }
+    }
+
+    @Composable
+    private fun SidebarSection(
+        selectedTab: String,
+        onTabSelected: (String) -> Unit,
+        modifier: Modifier = Modifier,
+    ) {
+        Column(
+            modifier = modifier
+                .fillMaxHeight()
+                .background(KMTheme.colors.gray)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SidebarItem(
+                icon = Icons.Default.Description,
+                text = "Create Test",
+                isSelected = selectedTab == "Create",
+                onClick = { onTabSelected("Create") }
+            )
+            SidebarItem(
+                icon = Icons.Default.PlayArrow,
+                text = "Run Tests",
+                isSelected = selectedTab == "Run",
+                onClick = { onTabSelected("Run") }
+            )
+        }
+    }
+
+    @Composable
+    private fun SidebarItem(
+        icon: androidx.compose.ui.graphics.vector.ImageVector,
+        text: String,
+        isSelected: Boolean,
+        onClick: () -> Unit,
+    ) {
+        KMActionCard(
+            modifier = Modifier.fillMaxWidth(),
+            title = text,
+            icon = icon,
+            actionColor = if (isSelected) KMTheme.colors.purple else KMTheme.colors.lightGray,
+            type = KMActionCardType.MEDIUM,
+            onClick = onClick
+        )
     }
 
     @Composable
     private fun HeaderSection() {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = KMTheme.colors.gray.copy(alpha = 0.1f),
-            elevation = 8.dp,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = KMTheme.colors.purple,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        "KMaestro",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KMTheme.colors.black
-                    )
-                    Text(
-                        "Maestro UI Testing Made Easy",
-                        fontSize = 14.sp,
-                        color = KMTheme.colors.hintGray
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun DirectorySection(
-        directoryPath: String,
-        onDirectoryChange: (String) -> Unit,
-        onBrowse: () -> Unit,
-        onRefresh: () -> Unit,
-        isScanning: Boolean,
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = KMTheme.colors.lightGray.copy(alpha = 0.1f),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Folder,
-                        contentDescription = null,
-                        tint = KMTheme.colors.purple
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Maestro Files Directory",
-                        fontWeight = FontWeight.Medium,
-                        color = KMTheme.colors.black
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = directoryPath,
-                        onValueChange = onDirectoryChange,
-                        modifier = Modifier.weight(1f),
-                        placeholder = {
-                            Text(
-                                "Enter directory path...",
-                                color = KMTheme.colors.hintGray
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.FolderOpen,
-                                contentDescription = null,
-                                tint = KMTheme.colors.purple
-                            )
-                        },
-                        singleLine = true,
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            textColor = KMTheme.colors.black,
-                            backgroundColor = KMTheme.colors.white,
-                            focusedBorderColor = KMTheme.colors.purple,
-                            unfocusedBorderColor = KMTheme.colors.lightGray
-                        )
-                    )
-
-                    Button(
-                        onClick = onBrowse,
-                        enabled = !isScanning,
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = KMTheme.colors.green,
-                            contentColor = KMTheme.colors.white
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Browse")
-                    }
-
-                    Button(
-                        onClick = onRefresh,
-                        enabled = !isScanning,
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = KMTheme.colors.green,
-                            contentColor = KMTheme.colors.white
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        if (isScanning) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = KMTheme.colors.white
-                            )
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Refresh")
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun FilesSection(
-        files: List<MaestroFile>,
-        selectedFile: MaestroFile?,
-        onFileSelect: (MaestroFile) -> Unit,
-        onFileDoubleClick: (MaestroFile) -> Unit,
-        modifier: Modifier = Modifier,
-    ) {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            backgroundColor = KMTheme.colors.lightGray.copy(alpha = 0.1f),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.List,
-                        contentDescription = null,
-                        tint = KMTheme.colors.purple
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Test Files (${files.size})",
-                        fontWeight = FontWeight.Medium,
-                        color = KMTheme.colors.black
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (files.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.SearchOff,
-                                contentDescription = null,
-                                tint = KMTheme.colors.hintGray,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "No Maestro files found",
-                                color = KMTheme.colors.hintGray
-                            )
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(files) { file ->
-                            FileItem(
-                                file = file,
-                                isSelected = selectedFile == file,
-                                onClick = { onFileSelect(file) },
-                                onDoubleClick = { onFileDoubleClick(file) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        KMText(
+            text = "Maestro UI Testing",
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = KMTheme.colors.green
+            ),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
     }
 
     @Composable
@@ -418,14 +253,6 @@ class KMaestroWindowFactory : ToolWindowFactory {
         onClick: () -> Unit,
         onDoubleClick: () -> Unit,
     ) {
-        val backgroundColor by animateColorAsState(
-            targetValue = if (isSelected)
-                KMTheme.colors.purple.copy(alpha = 0.2f)
-            else
-                Color.Transparent,
-            animationSpec = tween(200)
-        )
-
         var clickCount by remember { mutableStateOf(0) }
 
         LaunchedEffect(clickCount) {
@@ -440,166 +267,165 @@ class KMaestroWindowFactory : ToolWindowFactory {
             }
         }
 
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
+                .background(
+                    if (isSelected) KMTheme.colors.purple.copy(alpha = 0.2f) else Color.Transparent,
+                    RoundedCornerShape(6.dp)
+                )
                 .clickable {
                     onClick()
                     clickCount++
-                },
-            color = backgroundColor,
-            elevation = if (isSelected) 4.dp else 0.dp
+                }
+                .padding(8.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Description,
-                    contentDescription = null,
-                    tint = if (isSelected)
-                        KMTheme.colors.purple
-                    else
-                        KMTheme.colors.hintGray
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    file.name,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                    color = if (isSelected)
-                        KMTheme.colors.black
-                    else
-                        KMTheme.colors.hintGray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            KMText(
+                text = file.name,
+                color = if (isSelected) KMTheme.colors.white else KMTheme.colors.lightGray,
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 
     @Composable
-    private fun RunButton(
-        enabled: Boolean,
+    private fun RunnerTabContent(
+        selectedFile: MaestroFile?,
         isRunning: Boolean,
-        onClick: () -> Unit,
+        logOutput: String,
+        directoryPath: String,
+        onDirectoryChange: (String) -> Unit,
+        maestroFiles: List<MaestroFile>,
+        onFileSelect: (MaestroFile) -> Unit,
+        onFileDoubleClick: (MaestroFile) -> Unit,
+        isScanning: Boolean,
+        onBrowse: () -> Unit,
+        onRefresh: () -> Unit,
+        onRunTest: () -> Unit,
     ) {
-        Button(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = KMTheme.colors.purple,
-                contentColor = KMTheme.colors.white,
-                disabledBackgroundColor = KMTheme.colors.lightGray
-            ),
-            shape = RoundedCornerShape(12.dp),
-            elevation = ButtonDefaults.elevation(
-                defaultElevation = 6.dp,
-                pressedElevation = 8.dp
-            )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (isRunning) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
+            KMTextField(
+                value = directoryPath,
+                onValueChange = onDirectoryChange,
+                placeholder = "Enter directory path...",
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                KMActionCard(
+                    title = "Browse",
+                    actionColor = KMTheme.colors.purple,
+                    icon = Icons.Default.Description,
+                    type = KMActionCardType.MEDIUM,
+                    onClick = onBrowse,
+                )
+
+                KMActionCard(
+                    title = if (isScanning) "..." else "Refresh",
+                    actionColor = KMTheme.colors.green,
+                    icon = Icons.Default.Refresh,
+                    type = KMActionCardType.MEDIUM,
+                    onClick = onRefresh,
+                )
+            }
+
+            KMText(
+                text = "Test Files (${maestroFiles.size})",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
                     color = KMTheme.colors.white
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Running Test...", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-            } else {
-                Icon(
-                    Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Run Selected Test", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-            }
-        }
-    }
+            )
 
-    @Composable
-    private fun StatusBar(
-        status: String,
-        filesCount: Int,
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = KMTheme.colors.green.copy(alpha = 0.1f),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    status,
-                    fontSize = 14.sp,
-                    color = KMTheme.colors.black,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    "$filesCount files",
-                    fontSize = 14.sp,
-                    color = KMTheme.colors.hintGray
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun LogSection(
-        logOutput: String,
-        modifier: Modifier = Modifier,
-    ) {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            backgroundColor = KMTheme.colors.gray.copy(alpha = 0.05f),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Terminal,
-                        contentDescription = null,
-                        tint = KMTheme.colors.purple
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        KMTheme.colors.gray,
+                        RoundedCornerShape(8.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Output",
+                    .padding(16.dp)
+            ) {
+                if (maestroFiles.isEmpty()) {
+                    KMText(
+                        text = "No Maestro files found",
+                        color = KMTheme.colors.hintGray,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(maestroFiles) { file ->
+                            FileItem(
+                                file = file,
+                                isSelected = selectedFile == file,
+                                onClick = { onFileSelect(file) },
+                                onDoubleClick = { onFileDoubleClick(file) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (selectedFile != null) {
+                KMText(
+                    text = "Selected: ${selectedFile.name}",
+                    style = TextStyle(
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = KMTheme.colors.black
+                        color = KMTheme.colors.white
                     )
-                }
+                )
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            KMButton(
+                text = if (isRunning) "Running..." else "Run Test",
+                backgroundColor = KMTheme.colors.purple,
+                onClick = onRunTest,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            KMTheme.colors.lightGray.copy(alpha = 0.1f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        logOutput,
-                        fontSize = 13.sp,
-                        color = KMTheme.colors.black,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        lineHeight = 18.sp
+            KMText(
+                text = "Output",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = KMTheme.colors.white
+                )
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        KMTheme.colors.gray,
+                        RoundedCornerShape(8.dp)
                     )
-                }
+                    .padding(16.dp)
+            ) {
+                KMText(
+                    text = logOutput,
+                    color = KMTheme.colors.white,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                )
             }
         }
     }

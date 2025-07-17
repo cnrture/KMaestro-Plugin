@@ -14,11 +14,6 @@ class MaestroService(private val project: Project) {
 
     private val logger = thisLogger()
 
-    /**
-     * Belirtilen dizinde Maestro YAML dosyalarını tarar
-     * @param directoryPath Taranacak dizin yolu
-     * @return Bulunan Maestro dosyalarının listesi
-     */
     fun scanMaestroFiles(directoryPath: String): List<MaestroFile> {
         val files = mutableListOf<MaestroFile>()
 
@@ -29,7 +24,6 @@ class MaestroService(private val project: Project) {
                 return files
             }
 
-            // Dizini recursive olarak tarar ve YAML dosyalarını bulur
             directory.walkTopDown()
                 .filter { it.isFile && (it.extension == "yaml" || it.extension == "yml") }
                 .forEach { file ->
@@ -45,11 +39,6 @@ class MaestroService(private val project: Project) {
         return files
     }
 
-    /**
-     * Belirtilen Maestro test dosyasını çalıştırır
-     * @param filePath Çalıştırılacak dosya yolu
-     * @return Test sonucu
-     */
     fun runMaestroTest(filePath: String): CompletableFuture<MaestroTestResult> {
         return CompletableFuture.supplyAsync {
             try {
@@ -88,18 +77,12 @@ class MaestroService(private val project: Project) {
     }
 }
 
-/**
- * Maestro dosyasını temsil eden data class
- */
 data class MaestroFile(
     val name: String,
     val path: String,
     val virtualFile: VirtualFile,
 )
 
-/**
- * Maestro test sonucunu temsil eden data class
- */
 data class MaestroTestResult(
     val filePath: String,
     val exitCode: Int,
