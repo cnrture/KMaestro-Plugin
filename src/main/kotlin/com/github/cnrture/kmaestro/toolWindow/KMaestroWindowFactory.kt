@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -354,7 +355,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.List,
+                        Icons.AutoMirrored.Filled.List,
                         contentDescription = null,
                         tint = KMTheme.colors.purple
                     )
