@@ -26,6 +26,7 @@ class MaestroService(private val project: Project) {
 
             directory.walkTopDown()
                 .filter { it.isFile && (it.extension == "yaml" || it.extension == "yml") }
+                .filter { isMaestroFile(it) }
                 .forEach { file ->
                     val virtualFile = VirtualFileManager.getInstance().findFileByUrl("file://${file.absolutePath}")
                     if (virtualFile != null) {
@@ -37,6 +38,18 @@ class MaestroService(private val project: Project) {
         }
 
         return files
+    }
+
+    private fun isMaestroFile(file: File): Boolean {
+        return try {
+            file.readLines().any { line ->
+                val trimmedLine = line.trim()
+                trimmedLine.contains("appId:")
+            }
+        } catch (e: Exception) {
+            logger.warn("Error reading file for Maestro validation: ${file.absolutePath}", e)
+            false
+        }
     }
 
     fun runMaestroTest(filePath: String): CompletableFuture<MaestroTestResult> {
