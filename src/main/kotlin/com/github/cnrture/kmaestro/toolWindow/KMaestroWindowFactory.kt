@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.cnrture.kmaestro.services.MaestroFile
 import com.github.cnrture.kmaestro.services.MaestroService
-import com.github.cnrture.kmaestro.theme.KMaestroTheme
+import com.github.cnrture.kmaestro.theme.KMTheme
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
@@ -55,7 +55,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
         val panel = JPanel(BorderLayout())
         ComposePanel().apply {
             setContent {
-                KMaestroTheme {
+                KMTheme {
                     MainContent(project)
                 }
             }
@@ -89,7 +89,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colors.background
+            color = KMTheme.colors.black
         ) {
             Column(
                 modifier = Modifier
@@ -198,32 +198,32 @@ class KMaestroWindowFactory : ToolWindowFactory {
     private fun HeaderSection() {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color(0xFFE1C4FF),
-            elevation = 4.dp,
-            shape = RoundedCornerShape(12.dp)
+            backgroundColor = KMTheme.colors.gray.copy(alpha = 0.1f),
+            elevation = 8.dp,
+            shape = RoundedCornerShape(16.dp)
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = Color(0xFF6200EE),
-                    modifier = Modifier.size(32.dp)
+                    tint = KMTheme.colors.purple,
+                    modifier = Modifier.size(40.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
                         "KMaestro",
-                        fontSize = 24.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6200EE)
+                        color = KMTheme.colors.black
                     )
                     Text(
                         "Maestro UI Testing Made Easy",
-                        fontSize = 12.sp,
-                        color = Color(0xFF3700B3).copy(alpha = 0.7f)
+                        fontSize = 14.sp,
+                        color = KMTheme.colors.hintGray
                     )
                 }
             }
@@ -240,9 +240,9 @@ class KMaestroWindowFactory : ToolWindowFactory {
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color(0xFFF3F0FF),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
+            backgroundColor = KMTheme.colors.lightGray.copy(alpha = 0.1f),
+            elevation = 4.dp,
+            shape = RoundedCornerShape(12.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -254,13 +254,13 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     Icon(
                         Icons.Default.Folder,
                         contentDescription = null,
-                        tint = Color(0xFF6200EE)
+                        tint = KMTheme.colors.purple
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Maestro Files Directory",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1C1B1F)
+                        color = KMTheme.colors.black
                     )
                 }
 
@@ -272,14 +272,25 @@ class KMaestroWindowFactory : ToolWindowFactory {
                         value = directoryPath,
                         onValueChange = onDirectoryChange,
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Enter directory path...") },
+                        placeholder = {
+                            Text(
+                                "Enter directory path...",
+                                color = KMTheme.colors.hintGray
+                            )
+                        },
                         leadingIcon = {
-                            Icon(Icons.Default.FolderOpen, contentDescription = null)
+                            Icon(
+                                Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                tint = KMTheme.colors.purple
+                            )
                         },
                         singleLine = true,
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFF6200EE),
-                            unfocusedBorderColor = Color(0xFF49454F)
+                            textColor = KMTheme.colors.black,
+                            backgroundColor = KMTheme.colors.white,
+                            focusedBorderColor = KMTheme.colors.purple,
+                            unfocusedBorderColor = KMTheme.colors.lightGray
                         )
                     )
 
@@ -287,9 +298,10 @@ class KMaestroWindowFactory : ToolWindowFactory {
                         onClick = onBrowse,
                         enabled = !isScanning,
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color(0xFF03DAC6),
-                            contentColor = Color.White
-                        )
+                            backgroundColor = KMTheme.colors.green,
+                            contentColor = KMTheme.colors.white
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
@@ -300,14 +312,15 @@ class KMaestroWindowFactory : ToolWindowFactory {
                         onClick = onRefresh,
                         enabled = !isScanning,
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color(0xFF03DAC6),
-                            contentColor = Color.White
-                        )
+                            backgroundColor = KMTheme.colors.green,
+                            contentColor = KMTheme.colors.white
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         if (isScanning) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = Color.White
+                                color = KMTheme.colors.white
                             )
                         } else {
                             Icon(Icons.Default.Refresh, contentDescription = null)
@@ -330,9 +343,9 @@ class KMaestroWindowFactory : ToolWindowFactory {
     ) {
         Card(
             modifier = modifier.fillMaxWidth(),
-            backgroundColor = Color(0xFFF3F0FF),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
+            backgroundColor = KMTheme.colors.lightGray.copy(alpha = 0.1f),
+            elevation = 4.dp,
+            shape = RoundedCornerShape(12.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -343,13 +356,13 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     Icon(
                         Icons.Default.List,
                         contentDescription = null,
-                        tint = Color(0xFF6200EE)
+                        tint = KMTheme.colors.purple
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Test Files (${files.size})",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1C1B1F)
+                        color = KMTheme.colors.black
                     )
                 }
 
@@ -368,13 +381,13 @@ class KMaestroWindowFactory : ToolWindowFactory {
                             Icon(
                                 Icons.Default.SearchOff,
                                 contentDescription = null,
-                                tint = Color(0xFF1C1B1F).copy(alpha = 0.5f),
+                                tint = KMTheme.colors.hintGray,
                                 modifier = Modifier.size(48.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 "No Maestro files found",
-                                color = Color(0xFF1C1B1F).copy(alpha = 0.5f)
+                                color = KMTheme.colors.hintGray
                             )
                         }
                     }
@@ -406,7 +419,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
     ) {
         val backgroundColor by animateColorAsState(
             targetValue = if (isSelected)
-                Color(0xFFE1C4FF)
+                KMTheme.colors.purple.copy(alpha = 0.2f)
             else
                 Color.Transparent,
             animationSpec = tween(200)
@@ -445,18 +458,18 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     Icons.Default.Description,
                     contentDescription = null,
                     tint = if (isSelected)
-                        Color(0xFF6200EE)
+                        KMTheme.colors.purple
                     else
-                        Color(0xFF1C1B1F).copy(alpha = 0.6f)
+                        KMTheme.colors.hintGray
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     file.name,
                     fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                     color = if (isSelected)
-                        Color(0xFF3700B3)
+                        KMTheme.colors.black
                     else
-                        Color(0xFF1C1B1F),
+                        KMTheme.colors.hintGray,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -475,23 +488,33 @@ class KMaestroWindowFactory : ToolWindowFactory {
             enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFF6200EE),
-                contentColor = Color.White
+                backgroundColor = KMTheme.colors.purple,
+                contentColor = KMTheme.colors.white,
+                disabledBackgroundColor = KMTheme.colors.lightGray
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.elevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 8.dp
             )
         ) {
             if (isRunning) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White
+                    modifier = Modifier.size(24.dp),
+                    color = KMTheme.colors.white
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Running Test...")
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Running Test...", fontWeight = FontWeight.Medium, fontSize = 16.sp)
             } else {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Run Selected Test", fontWeight = FontWeight.Medium)
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Run Selected Test", fontWeight = FontWeight.Medium, fontSize = 16.sp)
             }
         }
     }
@@ -503,24 +526,25 @@ class KMaestroWindowFactory : ToolWindowFactory {
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color(0xFFCCF7F3),
-            elevation = 1.dp,
+            backgroundColor = KMTheme.colors.green.copy(alpha = 0.1f),
+            elevation = 2.dp,
             shape = RoundedCornerShape(8.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     status,
-                    fontSize = 12.sp,
-                    color = Color(0xFF001A17)
+                    fontSize = 14.sp,
+                    color = KMTheme.colors.black,
+                    fontWeight = FontWeight.Medium
                 )
                 Text(
                     "$filesCount files",
-                    fontSize = 12.sp,
-                    color = Color(0xFF001A17).copy(alpha = 0.7f)
+                    fontSize = 14.sp,
+                    color = KMTheme.colors.hintGray
                 )
             }
         }
@@ -533,9 +557,9 @@ class KMaestroWindowFactory : ToolWindowFactory {
     ) {
         Card(
             modifier = modifier.fillMaxWidth(),
-            backgroundColor = Color(0xFFE7E0EC),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
+            backgroundColor = KMTheme.colors.gray.copy(alpha = 0.05f),
+            elevation = 4.dp,
+            shape = RoundedCornerShape(12.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -546,13 +570,13 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     Icon(
                         Icons.Default.Terminal,
                         contentDescription = null,
-                        tint = Color(0xFF6200EE)
+                        tint = KMTheme.colors.purple
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Output",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1C1B1F)
+                        color = KMTheme.colors.black
                     )
                 }
 
@@ -562,16 +586,17 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Color.Black.copy(alpha = 0.05f),
+                            KMTheme.colors.lightGray.copy(alpha = 0.1f),
                             RoundedCornerShape(8.dp)
                         )
-                        .padding(12.dp)
+                        .padding(16.dp)
                 ) {
                     Text(
                         logOutput,
-                        fontSize = 12.sp,
-                        color = Color(0xFF49454F),
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        fontSize = 13.sp,
+                        color = KMTheme.colors.black,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        lineHeight = 18.sp
                     )
                 }
             }
@@ -606,17 +631,3 @@ class KMaestroWindowFactory : ToolWindowFactory {
         }
     }
 }
-
-// Custom Color Scheme
-private val KMaestroColors = lightColors(
-    primary = Color(0xFF6200EE),
-    primaryVariant = Color(0xFF3700B3),
-    secondary = Color(0xFF03DAC6),
-    secondaryVariant = Color(0xFF018786),
-    surface = Color(0xFFFFFBFE),
-    background = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onSurface = Color(0xFF1C1B1F),
-    onBackground = Color(0xFF1C1B1F)
-)
