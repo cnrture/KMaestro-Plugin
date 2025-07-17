@@ -15,7 +15,7 @@ fun lightColors(
     green: Color = Color(0xff339e48),
     red: Color = Color(0xffE44857),
     hintGray: Color = Color(0xFF565656),
-): KMaestroColor = KMaestroColor(
+): KMColor = KMColor(
     white = white,
     black = black,
     gray = gray,
@@ -26,7 +26,7 @@ fun lightColors(
     hintGray = hintGray,
 )
 
-class KMaestroColor(
+class KMColor(
     white: Color,
     black: Color,
     gray: Color,
