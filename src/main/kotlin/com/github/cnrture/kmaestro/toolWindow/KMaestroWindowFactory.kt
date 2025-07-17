@@ -15,9 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.cnrture.kmaestro.components.*
@@ -26,13 +27,12 @@ import com.github.cnrture.kmaestro.services.MaestroService
 import com.github.cnrture.kmaestro.theme.KMTheme
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
-import com.intellij.openapi.fileChooser.FileChooserDescriptor
-import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import javax.swing.JComponent
@@ -124,8 +124,6 @@ class KMaestroWindowFactory : ToolWindowFactory {
                             selectedFile = selectedFile,
                             isRunning = isRunning,
                             logOutput = logOutput,
-                            directoryPath = directoryPath,
-                            onDirectoryChange = { directoryPath = it },
                             maestroFiles = maestroFiles,
                             onFileSelect = { selectedFile = it },
                             onFileDoubleClick = { file ->
@@ -134,19 +132,6 @@ class KMaestroWindowFactory : ToolWindowFactory {
                                 }
                             },
                             isScanning = isScanning,
-                            onBrowse = {
-                                browseDirectory(project) { path ->
-                                    directoryPath = path
-                                    scope.launch {
-                                        isScanning = true
-                                        scanFiles(maestroService, path) { files, message ->
-                                            maestroFiles = files
-                                            isScanning = false
-                                            logOutput = "Waiting for tests to run..."
-                                        }
-                                    }
-                                }
-                            },
                             onRefresh = {
                                 scope.launch {
                                     isScanning = true
@@ -218,7 +203,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
 
     @Composable
     private fun SidebarItem(
-        icon: androidx.compose.ui.graphics.vector.ImageVector,
+        icon: ImageVector,
         text: String,
         isSelected: Boolean,
         onClick: () -> Unit,
@@ -260,7 +245,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
                 onDoubleClick()
                 clickCount = 0
             } else if (clickCount == 1) {
-                kotlinx.coroutines.delay(300)
+                delay(300)
                 if (clickCount == 1) {
                     clickCount = 0
                 }
@@ -280,15 +265,12 @@ class KMaestroWindowFactory : ToolWindowFactory {
                 }
                 .padding(8.dp)
         ) {
-            KMText(
-                text = file.name,
+            KMCheckbox(
+                label = file.name,
                 color = if (isSelected) KMTheme.colors.white else KMTheme.colors.lightGray,
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                checked = false,
+                isBackgroundEnable = true,
+                onCheckedChange = {},
             )
         }
     }
@@ -298,45 +280,23 @@ class KMaestroWindowFactory : ToolWindowFactory {
         selectedFile: MaestroFile?,
         isRunning: Boolean,
         logOutput: String,
-        directoryPath: String,
-        onDirectoryChange: (String) -> Unit,
         maestroFiles: List<MaestroFile>,
         onFileSelect: (MaestroFile) -> Unit,
         onFileDoubleClick: (MaestroFile) -> Unit,
         isScanning: Boolean,
-        onBrowse: () -> Unit,
         onRefresh: () -> Unit,
         onRunTest: () -> Unit,
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            KMTextField(
-                value = directoryPath,
-                onValueChange = onDirectoryChange,
-                placeholder = "Enter directory path...",
+            KMActionCard(
+                title = if (isScanning) "..." else "Refresh",
+                actionColor = KMTheme.colors.green,
+                icon = Icons.Default.Refresh,
+                type = KMActionCardType.MEDIUM,
+                onClick = onRefresh,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                KMActionCard(
-                    title = "Browse",
-                    actionColor = KMTheme.colors.purple,
-                    icon = Icons.Default.Description,
-                    type = KMActionCardType.MEDIUM,
-                    onClick = onBrowse,
-                )
-
-                KMActionCard(
-                    title = if (isScanning) "..." else "Refresh",
-                    actionColor = KMTheme.colors.green,
-                    icon = Icons.Default.Refresh,
-                    type = KMActionCardType.MEDIUM,
-                    onClick = onRefresh,
-                )
-            }
 
             KMText(
                 text = "Test Files (${maestroFiles.size})",
@@ -423,7 +383,7 @@ class KMaestroWindowFactory : ToolWindowFactory {
                     color = KMTheme.colors.white,
                     style = TextStyle(
                         fontSize = 12.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        fontFamily = FontFamily.Monospace
                     )
                 )
             }
@@ -442,19 +402,6 @@ class KMaestroWindowFactory : ToolWindowFactory {
             SwingUtilities.invokeLater {
                 onResult(files, message)
             }
-        }
-    }
-
-    private fun browseDirectory(project: Project, onDirectorySelected: (String) -> Unit) {
-        val descriptor = FileChooserDescriptor(false, true, false, false, false, false)
-        descriptor.title = "Select Maestro Files Directory"
-        descriptor.description = "Choose a directory containing Maestro YAML files"
-
-        val dialog = FileChooserFactory.getInstance().createFileChooser(descriptor, project, null)
-        val selectedFiles = dialog.choose(project)
-
-        if (selectedFiles.isNotEmpty()) {
-            onDirectorySelected(selectedFiles[0].path)
         }
     }
 }
