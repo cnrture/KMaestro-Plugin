@@ -12,7 +12,7 @@
         <toolWindow
                 factoryClass="com.github.cnrture.kmaestro.toolWindow.KMaestroWindowFactory"
                 id="KMaestro"
-                anchor="right"
+                anchor="bottom"
                 icon="/icons/pluginIcon.svg"/>
     </extensions>
 </idea-plugin>

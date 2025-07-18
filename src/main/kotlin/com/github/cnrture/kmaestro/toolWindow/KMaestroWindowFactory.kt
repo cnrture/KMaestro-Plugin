@@ -28,6 +28,9 @@ import javax.swing.JPanel
 class KMaestroWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        // Force the tool window to anchor at bottom
+        toolWindow.setAnchor(com.intellij.openapi.wm.ToolWindowAnchor.BOTTOM, null)
+
         toolWindow.contentManager.addContent(
             ContentFactory.getInstance().createContent(
                 createToolWindowComponent(project),
