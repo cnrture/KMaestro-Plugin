@@ -1,25 +1,27 @@
 package com.github.cnrture.kmaestro.toolWindow
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.cnrture.kmaestro.components.*
+import com.github.cnrture.kmaestro.components.KMActionCard
+import com.github.cnrture.kmaestro.components.KMActionCardType
+import com.github.cnrture.kmaestro.components.KMCheckbox
+import com.github.cnrture.kmaestro.components.KMText
 import com.github.cnrture.kmaestro.services.MaestroFile
 import com.github.cnrture.kmaestro.services.MaestroService
 import com.github.cnrture.kmaestro.theme.KMTheme
@@ -52,21 +54,22 @@ fun RunnerTabContent(project: Project) {
         }
     }
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header with file count and controls
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             KMText(
-                text = "Test Files (${maestroFiles.size})",
+                text = "Test Files",
                 style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = KMTheme.colors.white
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KMTheme.colors.yellow,
                 )
             )
 
@@ -117,123 +120,44 @@ fun RunnerTabContent(project: Project) {
                         }
                     },
                 )
-            }
-        }
 
-        // Files List
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(
-                    KMTheme.colors.gray,
-                    RoundedCornerShape(8.dp)
-                )
-                .padding(16.dp)
-        ) {
-            if (maestroFiles.isEmpty()) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    KMText(
-                        text = "No Maestro files found",
-                        color = KMTheme.colors.hintGray,
-                        style = TextStyle(fontSize = 16.sp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    KMText(
-                        text = "Make sure you have Maestro YAML files with 'appId:' in your project",
-                        color = KMTheme.colors.hintGray,
-                        style = TextStyle(fontSize = 12.sp)
-                    )
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(maestroFiles) { file ->
-                        FileItem(
-                            file = file,
-                            isSelected = selectedFiles.contains(file),
-                            onClick = {
-                                selectedFiles = if (selectedFiles.contains(file)) {
-                                    selectedFiles - file
-                                } else {
-                                    selectedFiles + file
-                                }
-                            },
-                            onDoubleClick = {
-                                ApplicationManager.getApplication().invokeLater {
-                                    FileEditorManager.getInstance(project).openFile(file.virtualFile, true)
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
+                // Run button
+                KMActionCard(
+                    title = if (isRunning) "Running ${selectedFiles.size} tests..." else "Run Selected Tests (${selectedFiles.size})",
+                    actionColor = if (selectedFiles.isNotEmpty()) KMTheme.colors.yellow else KMTheme.colors.lightGray,
+                    type = KMActionCardType.SMALL,
+                    icon = Icons.Rounded.PlayArrow,
+                    onClick = {
+                        if (selectedFiles.isNotEmpty() && !isRunning) {
+                            scope.launch {
+                                isRunning = true
+                                val filePaths = selectedFiles.map { it.path }
 
-        // Selected files info
-        if (selectedFiles.isNotEmpty()) {
-            KMText(
-                text = "Selected ${selectedFiles.size} file(s): ${selectedFiles.joinToString(", ") { it.name }}",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = KMTheme.colors.green
-                ),
-                maxLines = 2
-            )
-        }
+                                logOutput = "🚀 Starting ${selectedFiles.size} test(s) sequentially...\n\n"
+                                currentTestProgress = "Preparing tests..."
 
-        // Current test progress
-        if (currentTestProgress.isNotEmpty()) {
-            KMText(
-                text = "🔄 $currentTestProgress",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = KMTheme.colors.yellow
-                )
-            )
-        }
+                                ApplicationManager.getApplication().executeOnPooledThread {
+                                    maestroService.runMultipleMaestroTests(
+                                        filePaths = filePaths,
+                                        onProgress = { currentIndex, total, currentFile, result ->
+                                            SwingUtilities.invokeLater {
+                                                val statusIcon = if (result.success) "✅" else "❌"
+                                                val progressText = "Test $currentIndex/$total: $currentFile $statusIcon"
+                                                currentTestProgress = progressText
 
-        // Run button
-        KMButton(
-            text = if (isRunning) "Running ${selectedFiles.size} tests..." else "Run Selected Tests (${selectedFiles.size})",
-            backgroundColor = if (selectedFiles.isNotEmpty()) KMTheme.colors.yellow else KMTheme.colors.lightGray,
-            onClick = {
-                if (selectedFiles.isNotEmpty() && !isRunning) {
-                    scope.launch {
-                        isRunning = true
-                        val filePaths = selectedFiles.map { it.path }
+                                                logOutput += "\n${"=".repeat(60)}\n"
+                                                logOutput += "📋 $progressText\n"
+                                                logOutput += "${"=".repeat(60)}\n"
+                                                logOutput += result.output
+                                                logOutput += "\n"
+                                            }
+                                        }
+                                    ).thenAccept { multiResult ->
+                                        SwingUtilities.invokeLater {
+                                            isRunning = false
+                                            currentTestProgress = ""
 
-                        logOutput = "🚀 Starting ${selectedFiles.size} test(s) sequentially...\n\n"
-                        currentTestProgress = "Preparing tests..."
-
-                        ApplicationManager.getApplication().executeOnPooledThread {
-                            maestroService.runMultipleMaestroTests(
-                                filePaths = filePaths,
-                                onProgress = { currentIndex, total, currentFile, result ->
-                                    SwingUtilities.invokeLater {
-                                        val statusIcon = if (result.success) "✅" else "❌"
-                                        val progressText = "Test $currentIndex/$total: $currentFile $statusIcon"
-                                        currentTestProgress = progressText
-
-                                        logOutput += "\n${"=".repeat(60)}\n"
-                                        logOutput += "📋 $progressText\n"
-                                        logOutput += "${"=".repeat(60)}\n"
-                                        logOutput += result.output
-                                        logOutput += "\n"
-                                    }
-                                }
-                            ).thenAccept { multiResult ->
-                                SwingUtilities.invokeLater {
-                                    isRunning = false
-                                    currentTestProgress = ""
-
-                                    val summary = """
+                                            val summary = """
                                         
                                         ${"=".repeat(60)}
                                         📊 FINAL TEST SUMMARY 📊
@@ -246,47 +170,117 @@ fun RunnerTabContent(project: Project) {
                                         ${"=".repeat(60)}
                                     """.trimIndent()
 
-                                    logOutput += summary
+                                            logOutput += summary
+                                        }
+                                    }
                                 }
                             }
                         }
+                    },
+                )
+            }
+
+            // Files List
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        KMTheme.colors.gray,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(16.dp)
+            ) {
+                if (maestroFiles.isEmpty()) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        KMText(
+                            text = "No Maestro files found",
+                            color = KMTheme.colors.hintGray,
+                            style = TextStyle(fontSize = 16.sp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        KMText(
+                            text = "Make sure you have Maestro YAML files with 'appId:' in your project",
+                            color = KMTheme.colors.hintGray,
+                            style = TextStyle(fontSize = 12.sp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(maestroFiles) { file ->
+                            FileItem(
+                                file = file,
+                                isSelected = selectedFiles.contains(file),
+                                onClick = {
+                                    selectedFiles = if (selectedFiles.contains(file)) {
+                                        selectedFiles - file
+                                    } else {
+                                        selectedFiles + file
+                                    }
+                                },
+                                onDoubleClick = {
+                                    ApplicationManager.getApplication().invokeLater {
+                                        FileEditorManager.getInstance(project).openFile(file.virtualFile, true)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        )
+            }
+        }
 
-        // Output section
-        KMText(
-            text = "Output",
-            style = TextStyle(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = KMTheme.colors.white
-            )
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(
-                    KMTheme.colors.gray,
-                    RoundedCornerShape(8.dp)
-                )
-                .padding(16.dp)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Current test progress
+            if (currentTestProgress.isNotEmpty()) {
+                KMText(
+                    text = "🔄 $currentTestProgress",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = KMTheme.colors.yellow
+                    )
+                )
+            }
+            // Output section
             KMText(
-                text = logOutput,
-                color = KMTheme.colors.white,
+                text = "Output",
                 style = TextStyle(
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 16.sp
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KMTheme.colors.yellow,
                 )
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        KMTheme.colors.gray,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(16.dp)
+            ) {
+                KMText(
+                    text = logOutput,
+                    color = KMTheme.colors.white,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 16.sp
+                    )
+                )
+            }
         }
     }
 }

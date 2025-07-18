@@ -9,13 +9,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.cnrture.kmaestro.components.KMActionCard
 import com.github.cnrture.kmaestro.components.KMActionCardType
-import com.github.cnrture.kmaestro.components.KMText
 import com.github.cnrture.kmaestro.theme.KMTheme
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -57,43 +53,27 @@ class KMaestroWindowFactory : ToolWindowFactory {
     private fun MainContent(project: Project) {
         var selectedTab by remember { mutableStateOf("Create") }
 
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(KMTheme.colors.black)
+                .background(KMTheme.colors.gray)
         ) {
-            KMText(
-                modifier = Modifier.padding(24.dp),
-                text = "Maestro UI Testing",
-                style = TextStyle(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KMTheme.colors.yellow,
-                ),
+            SidebarSection(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                modifier = Modifier.width(200.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(KMTheme.colors.gray)
-            ) {
-                SidebarSection(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    modifier = Modifier.width(200.dp)
-                )
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(KMTheme.colors.black)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    when (selectedTab) {
-                        "Create" -> CreateTestContent()
-                        "Run" -> RunnerTabContent(project)
-                    }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(KMTheme.colors.black)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                when (selectedTab) {
+                    "Create" -> CreateTestContent()
+                    "Run" -> RunnerTabContent(project)
                 }
             }
         }
