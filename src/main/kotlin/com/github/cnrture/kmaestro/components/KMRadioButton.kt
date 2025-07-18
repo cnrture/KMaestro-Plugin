@@ -31,7 +31,7 @@ import com.github.cnrture.kmaestro.theme.KMTheme
 fun KMRadioButton(
     text: String,
     selected: Boolean,
-    color: Color = KMTheme.colors.red,
+    color: Color = KMTheme.colors.yellow,
     onClick: () -> Unit,
 ) {
     Row(

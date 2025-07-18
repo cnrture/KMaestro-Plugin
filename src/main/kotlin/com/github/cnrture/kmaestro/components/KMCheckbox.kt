@@ -33,7 +33,7 @@ fun KMCheckbox(
     checked: Boolean,
     label: String? = null,
     isBackgroundEnable: Boolean = false,
-    color: Color = KMTheme.colors.red,
+    color: Color = KMTheme.colors.yellow,
     onCheckedChange: (Boolean) -> Unit = {},
 ) {
     Row(
