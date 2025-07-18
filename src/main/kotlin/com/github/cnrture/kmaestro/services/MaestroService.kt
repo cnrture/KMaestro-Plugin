@@ -88,6 +88,73 @@ class MaestroService(private val project: Project) {
             }
         }
     }
+
+    fun runMultipleMaestroTests(
+        filePaths: List<String>,
+        onProgress: (currentIndex: Int, total: Int, currentFile: String, result: MaestroTestResult) -> Unit,
+    ): CompletableFuture<MaestroMultiTestResult> {
+        return CompletableFuture.supplyAsync {
+            val results = mutableListOf<MaestroTestResult>()
+            val startTime = System.currentTimeMillis()
+
+            filePaths.forEachIndexed { index, filePath ->
+                logger.info("Running test ${index + 1}/${filePaths.size}: $filePath")
+
+                try {
+                    val process = ProcessBuilder("maestro", "test", filePath)
+                        .directory(File(project.basePath ?: "."))
+                        .redirectErrorStream(true)
+                        .start()
+
+                    val output = process.inputStream.bufferedReader().readText()
+                    val exitCode = process.waitFor()
+
+                    val result = MaestroTestResult(
+                        filePath = filePath,
+                        exitCode = exitCode,
+                        output = output,
+                        success = exitCode == 0
+                    )
+
+                    results.add(result)
+
+                    onProgress(index + 1, filePaths.size, File(filePath).name, result)
+
+                } catch (e: IOException) {
+                    logger.error("Error running Maestro test for $filePath", e)
+                    val result = MaestroTestResult(
+                        filePath = filePath,
+                        exitCode = -1,
+                        output = "Error: ${e.message}\nMake sure Maestro is installed and available in PATH",
+                        success = false
+                    )
+                    results.add(result)
+                    onProgress(index + 1, filePaths.size, File(filePath).name, result)
+                } catch (e: InterruptedException) {
+                    logger.error("Maestro test interrupted for $filePath", e)
+                    val result = MaestroTestResult(
+                        filePath = filePath,
+                        exitCode = -1,
+                        output = "Test interrupted: ${e.message}",
+                        success = false
+                    )
+                    results.add(result)
+                    onProgress(index + 1, filePaths.size, File(filePath).name, result)
+                }
+            }
+
+            val endTime = System.currentTimeMillis()
+            val totalDuration = endTime - startTime
+
+            MaestroMultiTestResult(
+                results = results,
+                totalTests = filePaths.size,
+                successfulTests = results.count { it.success },
+                failedTests = results.count { !it.success },
+                totalDurationMs = totalDuration
+            )
+        }
+    }
 }
 
 data class MaestroFile(
@@ -101,4 +168,12 @@ data class MaestroTestResult(
     val exitCode: Int,
     val output: String,
     val success: Boolean,
+)
+
+data class MaestroMultiTestResult(
+    val results: List<MaestroTestResult>,
+    val totalTests: Int,
+    val successfulTests: Int,
+    val failedTests: Int,
+    val totalDurationMs: Long,
 )
