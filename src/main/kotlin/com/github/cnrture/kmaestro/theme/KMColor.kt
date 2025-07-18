@@ -8,22 +8,22 @@ import androidx.compose.ui.graphics.Color
 
 fun lightColors(
     white: Color = Color(0xffecedee),
-    black: Color = Color(0xFF232327),
-    gray: Color = Color(0xff18181b),
+    black: Color = Color(0xFF18181b),
+    gray: Color = Color(0xff232327),
     lightGray: Color = Color(0xffa1a1aa),
-    purple: Color = Color(0xff7F52FF),
     green: Color = Color(0xff339e48),
     red: Color = Color(0xffE44857),
     hintGray: Color = Color(0xFF565656),
+    yellow: Color = Color(0xfff5a524),
 ): KMColor = KMColor(
     white = white,
     black = black,
     gray = gray,
     lightGray = lightGray,
-    purple = purple,
     green = green,
     red = red,
     hintGray = hintGray,
+    yellow = yellow,
 )
 
 class KMColor(
@@ -31,10 +31,10 @@ class KMColor(
     black: Color,
     gray: Color,
     lightGray: Color,
-    purple: Color,
     green: Color,
     red: Color,
     hintGray: Color,
+    yellow: Color,
 ) {
     private var _white: Color by mutableStateOf(white)
     val white: Color = _white
@@ -51,14 +51,14 @@ class KMColor(
     private var _red: Color by mutableStateOf(red)
     val red: Color = _red
 
-    private var _purple: Color by mutableStateOf(purple)
-    val purple: Color = _purple
-
     private var _green: Color by mutableStateOf(green)
     val green: Color = _green
 
     private var _hintGray: Color by mutableStateOf(hintGray)
     val hintGray: Color = _hintGray
+
+    private var _yellow: Color by mutableStateOf(yellow)
+    val yellow: Color = _yellow
 }
 
 internal val LocalColors = staticCompositionLocalOf { lightColors() }
